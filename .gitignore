@@ -1,0 +1,20 @@
+# Python specific
+__pycache__/
+*.pyc
+
+# Virtual Environment
+venv/
+env/
+
+# Environment Variables
+.env
+
+# JSON file
+spotify_tokens.json
+
+# IDE files
+.vscode/
+.idea/
+
+# Miscellaneous
+.DS_Store

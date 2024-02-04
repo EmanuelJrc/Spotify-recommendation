@@ -2,6 +2,7 @@
 
 #### Description:
 
+Created for the CS50 final project.
 The Spotify Recommender Project is a Python program that utilizes the Spotify API to provide personalized music recommendations based on user preferences. This project aims to assist users in discovering new music tailored to their tastes and preferences.
 
 ## Features
@@ -31,7 +32,9 @@ The Spotify Recommender Project is a Python program that utilizes the Spotify AP
 1. Clone the repository to your local machine.
 2. Install the required dependencies by running `pip install -r requirements.txt`.
 3. Register your application with the Spotify Developer Dashboard and obtain your client ID and client secret.
-4. Update the `client_id` and `client_secret` variables in the script with your credentials.
+4. Create .env file in the root directory of the project and put CLIENT_ID and CLIENT_SECRET in it.
+   `CLIENT_ID=your_client_id_here`
+   `CLIENT_SECRET=your_client_secret_here`
 5. Run the script using `python spotify_recommendations.py`.
 
 ## Dependencies

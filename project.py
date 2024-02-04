@@ -1,13 +1,16 @@
+import os
 import requests
+from dotenv import load_dotenv
 import json
 import time
-from tabulate import tabulate
 from urllib.parse import urlencode
 
 
 def main():
-    client_id = "603dd50b3f1b48ceb2580f17b5cee27b"
-    client_secret = "e2a737a16f6749d9a57e13e399e5a7a2"
+    # Load environment variables
+    load_dotenv()
+    client_id = os.getenv("CLIENT_ID")
+    client_secret = os.getenv("CLIENT_SECRET")
     redirect_uri = "http://localhost:8888/callback"
     scopes = [
         "user-read-currently-playing",
@@ -28,11 +31,9 @@ def main():
     method_choice = input("Enter the number of your desired method: ")
 
     if method_choice == "1":
-        genres = get_genres(access_token)
-        chosen_genre = get_user_genre(genres)
+        chosen_genre = get_user_genre(get_genres(access_token))
         print(f"\nChosen genre: {chosen_genre}\n")
-        # User chooses genre-based recommendations
-        recommendations = get_spotify_recommendations_from_genre(
+        recommendations = get_spotify_recommendations(
             access_token, seed_genre=chosen_genre
         )
     elif method_choice == "2":
@@ -40,14 +41,10 @@ def main():
         current_track = get_currently_playing_track(access_token)
         if current_track:
             print(
-                "\nCurrently playing:",
-                current_track["name"],
-                "by",
-                ", ".join(artist["name"] for artist in current_track["artists"]),
-                "\n",
+                f"\nCurrently playing: {current_track['name']} by {', '.join(artist['name'] for artist in current_track['artists'])}\n"
             )
             # Use the currently playing track as a seed to get recommendations
-            recommendations = get_spotify_recommendations_from_tracks(
+            recommendations = get_spotify_recommendations(
                 access_token, seed_tracks=[current_track["id"]]
             )
             print_recommendations(recommendations)
@@ -56,12 +53,9 @@ def main():
             return
     else:
         print("Invalid choice. Defaulting to genre-based recommendations.")
-        # Get available genres
-        genres = get_genres(access_token)
-        chosen_genre = get_user_genre(genres)
+        chosen_genre = get_user_genre(get_genres(access_token))
         print(f"\nChosen genre: {chosen_genre}\n")
-        # User chooses genre-based recommendations
-        recommendations = get_spotify_recommendations_from_genre(
+        recommendations = get_spotify_recommendations(
             access_token, seed_genre=chosen_genre
         )
 
@@ -74,7 +68,7 @@ def main():
         print("New access token:", access_token)
 
         # Make the request again with the new access token
-        recommendations = get_spotify_recommendations_from_genre(
+        recommendations = get_spotify_recommendations(
             access_token, seed_genres=[chosen_genre]
         )
         print_recommendations(recommendations)
@@ -82,8 +76,6 @@ def main():
 
 def get_spotify_access_token(client_id, client_secret, redirect_uri, scopes):
     """
-    Get an access token from Spotify.
-
     Args:
         client_id (str): Your Spotify application's client ID.
         client_secret (str): Your Spotify application's client secret.
@@ -168,11 +160,10 @@ def refresh_access_token(client_id, client_secret, refresh_token):
 
 
 def get_genres(access_token):
-    """
-    Get a list of available genres from Spotify.
-    """
+    # Get a list of available genres from Spotify.
+
     url = "https://api.spotify.com/v1/recommendations/available-genre-seeds"
-    headers = {"Authorization": "Bearer " + access_token}
+    headers = {"Authorization": f"Bearer {access_token}"}
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         return response.json().get("genres", [])
@@ -182,10 +173,8 @@ def get_genres(access_token):
 
 
 def get_user_genre(genres):
-    """
-    Prompt the user to choose a genre from the list of available genres.
+    # Ask the user to choose a genre from a list of available genres.
 
-    """
     print("\nAvailable genres:\n")
     num_per_row = 4
     max_genre_length = max(len(genre) for genre in genres)
@@ -211,7 +200,7 @@ def get_user_genre(genres):
             print("Invalid choice. Please enter a number between 1 and", len(genres))
 
 
-def get_spotify_recommendations_from_genre(
+def get_spotify_recommendations(
     access_token, seed_genre=None, seed_artists=None, seed_tracks=None, limit=20
 ):
     """
@@ -223,11 +212,7 @@ def get_spotify_recommendations_from_genre(
         seed_artists (list, optional): List of Spotify artist IDs to use as seed artists.
         seed_tracks (list, optional): List of Spotify track IDs to use as seed tracks.
         limit (int, optional): The target size of the list of recommended tracks. Default is 20.
-
-    Returns:
-        dict: Dictionary containing the response data from Spotify.
     """
-    # Construct the request URL
     url = "https://api.spotify.com/v1/recommendations"
     params = {"limit": limit}
     if seed_genre:
@@ -236,12 +221,8 @@ def get_spotify_recommendations_from_genre(
         params["seed_artists"] = ",".join(seed_artists)
     if seed_tracks:
         params["seed_tracks"] = ",".join(seed_tracks)
-
-    # Make the GET request to the Spotify API
-    headers = {"Authorization": "Bearer " + access_token}
+    headers = {"Authorization": f"Bearer {access_token}"}
     response = requests.get(url, params=params, headers=headers)
-
-    # Check if the request was successful
     if response.status_code == 200:
         return response.json()
     else:
@@ -251,37 +232,15 @@ def get_spotify_recommendations_from_genre(
         return None
 
 
-def print_recommendations(recommendations):
-    """
-    Print the recommended tracks in a readable format.
-
-    Args:
-        recommendations (dict): Dictionary containing the response data from Spotify.
-    """
-    if recommendations:
-        print("Recommended Tracks:")
-        for track in recommendations["tracks"]:
-            artists = ", ".join(artist["name"] for artist in track["artists"])
-            print(f"{track['name']} by {artists}")
-    else:
-        print("Failed to fetch recommendations.")
-
-
 def get_currently_playing_track(access_token):
-    """
-    Get the currently playing track from Spotify.
+    # Get the currently playing track from Spotify.
 
-    Args:
-        access_token (str): Spotify access token.
-
-    Returns:
-        dict: Dictionary containing information about the currently playing track.
-    """
-    # Construct the request URL
     url = "https://api.spotify.com/v1/me/player/currently-playing"
 
     # Make the GET request to the Spotify API
-    headers = {"Authorization": "Bearer " + access_token}
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
     response = requests.get(url, headers=headers)
 
     # Check if the request was successful and a track is currently playing
@@ -292,38 +251,16 @@ def get_currently_playing_track(access_token):
         return None
 
 
-def get_spotify_recommendations_from_tracks(access_token, seed_tracks=None, limit=20):
-    """
-    Get recommendations from Spotify based on seed tracks.
+def print_recommendations(recommendations):
+    # Print the recommended tracks in a readable format.
 
-    Args:
-        access_token (str): Spotify access token.
-        seed_tracks (list, optional): List of Spotify track IDs to use as seed tracks.
-        limit (int, optional): The target size of the list of recommended tracks. Default is 20.
-
-    Returns:
-        dict: Dictionary containing the response data from Spotify.
-    """
-    if not seed_tracks:
-        print("Error: No seed tracks provided.")
-        return None
-
-    # Construct the request URL
-    url = "https://api.spotify.com/v1/recommendations"
-    params = {"limit": limit, "seed_tracks": ",".join(seed_tracks)}
-
-    # Make the GET request to the Spotify API
-    headers = {"Authorization": "Bearer " + access_token}
-    response = requests.get(url, params=params, headers=headers)
-
-    # Check if the request was successful
-    if response.status_code == 200:
-        return response.json()
+    if recommendations:
+        print("Recommended Tracks:")
+        for track in recommendations["tracks"]:
+            artists = ", ".join(artist["name"] for artist in track["artists"])
+            print(f"{track['name']} by {artists}")
     else:
-        print("Error fetching recommendations:", response.status_code)
-        error_message = response.json().get("error", {}).get("message", "Unknown error")
-        print("Error message:", error_message)
-        return None
+        print("Failed to fetch recommendations.")
 
 
 if __name__ == "__main__":
